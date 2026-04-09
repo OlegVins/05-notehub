@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { fetchNotes } from '../../services/noteService';
 import NoteList from '../NoteList/NoteList';
 import Pagination from '../Pagination/Pagination';
@@ -10,11 +10,11 @@ import { useDebouncedCallback } from 'use-debounce';
 import css from './App.module.css';
 
 export default function App() {
-    const [page, setPage] = useState(1);
-    const [search, setSearch] = useState('');
-    const [isOpen, setIsOpen] = useState(false);
+    const [page, setPage] = useState<number>(1);
+    const [search, setSearch] = useState<string>('');
+    const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
 
-    const debouncedSearch = useDebouncedCallback((value: string) => {
+    const handleSearch = useDebouncedCallback((value: string) => {
         setSearch(value);
         setPage(1);
     }, 500);
@@ -22,42 +22,44 @@ export default function App() {
     const { data, isLoading, isError } = useQuery({
         queryKey: ['notes', page, search],
         queryFn: () => fetchNotes(page, search),
+        placeholderData: keepPreviousData,
     });
+
+    const notes = data?.notes ?? [];
+    const totalPages = data?.totalPages ?? 0;
 
     return (
         <div className={css.app}>
             <header className={css.toolbar}>
                 <SearchBox
-                    ocChange={debouncedSearch}
+                    onChange={handleSearch}
                 />
 
-                {data && data.totalPages > 1 && (
+                {totalPages > 1 && (
                     <Pagination
-                        pageCount={data.totalPages}
+                        pageCount={totalPages}
+                        currentPage={page}
                         onPageChange={setPage}
                     />
                 )}
 
                 <button className={css.button}
-                    onClick={() => setIsOpen(true)}
+                    onClick={() => setIsModalOpen(true)}
                 >
                     Create note +
                 </button>
             </header>
 
-            {isLoading && <p>Loading...</p>}
-            {isError && <p>Error...</p>}
-
-            {data && data.notes.length > 0 && (
-                <NoteList notes={data.notes}
+            {!isLoading && !isError && notes.length > 0 && (
+                <NoteList notes={notes}
                 />
             )}
 
-            {isOpen && (
+            {isModalOpen && (
                 <Modal onClose={() =>
-                    setIsOpen(false)}>
+                    setIsModalOpen(false)}>
                     <NoteForm onClose={() =>
-                        setIsOpen(false)}
+                        setIsModalOpen(false)}
                     />
                 </Modal>
             )}

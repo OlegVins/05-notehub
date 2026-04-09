@@ -7,22 +7,31 @@ interface ModalProps {
     onClose: () => void;
 }
 
-const modalRoot = document.body;
+const modalRoot = document.getElementById('modal-root') as HTMLElement;
+
 
 export default function Modal({ children, onClose }: ModalProps) {
     useEffect(() => {
-        const handleEsc = (e: KeyboardEvent) => {
+        const handleKeyDown = (e: KeyboardEvent) => {
             if (e.key === 'Escape') {
                 onClose();
             }
         };
 
-        window.addEventListener('keydown', handleEsc);
+        window.addEventListener('keydown', handleKeyDown);
 
         return () => {
-            window.removeEventListener('keydown', handleEsc);
+            window.removeEventListener('keydown', handleKeyDown);
         };
     }, [onClose]);
+
+    useEffect(() => {
+        document.body.style.overflow = 'hidden';
+
+        return () => {
+            document.body.style.overflow = '';
+        };
+    }, []);
 
     const handleBackdropClick = (
         e: React.MouseEvent<HTMLDivElement>
